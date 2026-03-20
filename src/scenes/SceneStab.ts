@@ -119,14 +119,14 @@ export class SceneStab extends BaseScene {
     const centerX = this.canvasRect.width / 2;
     const centerY = this.canvasRect.height / 2;
 
-    const numLines = 6 + Math.floor(Math.random() * 6); // Slightly fewer lines
+    const numLines = 12 + Math.floor(Math.random() * 8); // Significantly more lines
     for (let i = 0; i < numLines; i++) {
         const angle = (i / numLines) * Math.PI * 2;
-        const length = 30 + Math.random() * 30; // Shorter lines
-        graphics.moveTo(Math.cos(angle) * 15, Math.sin(angle) * 15);
+        const length = 50 + Math.random() * 50; // Longer lines
+        graphics.moveTo(Math.cos(angle) * 10, Math.sin(angle) * 10);
         graphics.lineTo(Math.cos(angle) * length, Math.sin(angle) * length);
     }
-    graphics.stroke({ color, width: 1.5, alpha: 0.7 });
+    graphics.stroke({ color, width: 2.5, alpha: 0.9 });
     
     graphics.position.set(centerX, centerY);
     graphics.rotation = Math.random() * Math.PI;

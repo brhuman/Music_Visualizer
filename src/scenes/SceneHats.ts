@@ -116,8 +116,8 @@ export class SceneHats extends BaseScene {
         this.visuals.push({
           graphics,
           life: 1.0,
-          vx: (Math.random() - 0.5) * 18, // Higher velocity
-          vy: (Math.random() - 0.5) * 18
+          vx: (Math.random() - 0.5) * 35, // Significantly higher velocity
+          vy: (Math.random() - 0.5) * 35
         });
     }
   }

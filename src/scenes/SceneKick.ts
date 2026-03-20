@@ -5,9 +5,9 @@ import { BaseScene } from '../core/BaseScene';
 interface KickVisual {
   graphics: PIXI.Graphics;
   life: number;
-  type: 'pulse' | 'shedtle';
-  vx?: number;
-  vy?: number;
+  type: 'stripe' | 'shedtle';
+  vx: number;
+  vy: number;
 }
 
 export class SceneKick extends BaseScene {
@@ -60,7 +60,7 @@ export class SceneKick extends BaseScene {
           }
           
           Tone.Draw.schedule(() => {
-            this.spawnVisual();
+            this.spawnStripes();
             this.spawnShedtle();
           }, time);
         }
@@ -81,39 +81,30 @@ export class SceneKick extends BaseScene {
   public update(deltaTime: number): void {
     const centerX = this.canvasRect.width / 2;
     const centerY = this.canvasRect.height / 2;
+    const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
 
     for (let i = this.visuals.length - 1; i >= 0; i--) {
       const v = this.visuals[i];
+      v.life -= deltaTime * (v.type === 'stripe' ? 0.025 : 0.02);
       
-      if (v.type === 'pulse') {
-        v.life -= deltaTime * 0.04;
-        if (v.life <= 0) {
-          v.graphics.destroy();
-          this.visuals.splice(i, 1);
+      if (v.life <= 0) {
+        v.graphics.destroy();
+        this.visuals.splice(i, 1);
+      } else {
+        v.graphics.x += v.vx * deltaTime;
+        v.graphics.y += v.vy * deltaTime;
+        
+        const dx = centerX - v.graphics.x;
+        const dy = centerY - v.graphics.y;
+        const distToCenter = Math.sqrt(dx * dx + dy * dy);
+        
+        if (v.type === 'stripe') {
+           // Move from edges to center and fade out
+           v.graphics.alpha = Math.min(v.life * 0.6, distToCenter / (maxDist * 0.4));
         } else {
-          // Pulse at perimeter
-          const scale = (1.1 - v.life) * 4.5; 
-          v.graphics.scale.set(Math.min(scale, 3.0));
-          v.graphics.alpha = v.life * 0.7;
-        }
-      } else if (v.type === 'shedtle') {
-        v.life -= deltaTime * 0.02;
-        if (v.life <= 0) {
-          v.graphics.destroy();
-          this.visuals.splice(i, 1);
-        } else {
-          v.graphics.x += (v.vx || 0) * deltaTime;
-          v.graphics.y += (v.vy || 0) * deltaTime;
-          
-          // Fade as it approaches center
-          const dx = centerX - v.graphics.x;
-          const dy = centerY - v.graphics.y;
-          const distToCenter = Math.sqrt(dx * dx + dy * dy);
-          const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
-          
-          // Gradually become transparent towards the center
-          v.graphics.alpha = Math.min(v.life, distToCenter / (maxDist * 0.5));
-          v.graphics.rotation += deltaTime * 0.05;
+           // Shedtle particles
+           v.graphics.alpha = Math.min(v.life, distToCenter / (maxDist * 0.5));
+           v.graphics.rotation += deltaTime * 0.05;
         }
       }
     }
@@ -150,58 +141,42 @@ export class SceneKick extends BaseScene {
     }
   }
 
-  private drawHeart(g: PIXI.Graphics, size: number, color: number) {
-    g.beginPath();
-    g.moveTo(0, size * 0.3);
-    g.bezierCurveTo(0, size * 0.25, -size * 0.4, 0, -size * 0.5, 0);
-    g.bezierCurveTo(-size * 1.1, 0, -size * 1.1, size * 0.82, -size * 1.1, size * 0.82);
-    g.bezierCurveTo(-size * 1.1, size * 1.2, -size * 0.5, size * 1.8, 0, size * 2.2);
-    g.bezierCurveTo(size * 0.5, size * 1.8, size * 1.1, size * 1.2, size * 1.1, size * 0.82);
-    g.bezierCurveTo(size * 1.1, size * 0.82, size * 1.1, 0, size * 0.5, 0);
-    g.bezierCurveTo(size * 0.4, 0, 0, size * 0.25, 0, size * 0.3);
-    g.stroke({ width: 3, color });
-  }
-
-  private spawnVisual() {
+  private spawnStripes() {
     if (!this.container) return;
     
-    const graphics = new PIXI.Graphics();
     const color = this.colors[this.currentVariation % this.colors.length];
-    
     const w = this.canvasRect.width;
     const h = this.canvasRect.height;
     
-    // Choose a random edge
-    const edge = Math.floor(Math.random() * 4);
-    let x = 0, y = 0;
-    const padding = 20;
-    if (edge === 0) { x = Math.random() * w; y = padding; } // Top
-    else if (edge === 1) { x = w - padding; y = Math.random() * h; } // Right
-    else if (edge === 2) { x = Math.random() * w; y = h - padding; } // Bottom
-    else { x = padding; y = Math.random() * h; } // Left
+    // Spawn stripes from all 4 sides moving to center
+    const speed = 4.5;
+    const stripes = [
+        { x: w / 2, y: -20, width: w, height: 15, vx: 0, vy: speed }, // Top
+        { x: w + 20, y: h / 2, width: 15, height: h, vx: -speed, vy: 0 }, // Right
+        { x: w / 2, y: h + 20, width: w, height: 15, vx: 0, vy: -speed }, // Bottom
+        { x: -20, y: h / 2, width: 15, height: h, vx: speed, vy: 0 }  // Left
+    ];
 
-    // Draw Heart or Circle
-    if (this.currentVariation === 0 || this.currentVariation === 1) {
-       this.drawHeart(graphics, 20, color);
-    } else {
-       graphics.circle(0, 0, 30).stroke({ width: 3, color });
-    }
-    
-    graphics.x = x;
-    graphics.y = y;
-    
-    this.container.addChild(graphics);
-    this.visuals.push({
-      graphics,
-      life: 1.0,
-      type: 'pulse'
+    stripes.forEach(s => {
+        const graphics = new PIXI.Graphics();
+        graphics.rect(-s.width / 2, -s.height / 2, s.width, s.height).fill({ color, alpha: 0.3 });
+        graphics.x = s.x;
+        graphics.y = s.y;
+        this.container?.addChild(graphics);
+        this.visuals.push({
+            graphics,
+            life: 1.0,
+            type: 'stripe',
+            vx: s.vx,
+            vy: s.vy
+        });
     });
   }
 
   private spawnShedtle() {
     if (!this.container) return;
     
-    const count = 3;
+    const count = 4;
     const color = this.colors[this.currentVariation % this.colors.length];
     const centerX = this.canvasRect.width / 2;
     const centerY = this.canvasRect.height / 2;
@@ -211,33 +186,29 @@ export class SceneKick extends BaseScene {
     for (let i = 0; i < count; i++) {
       const graphics = new PIXI.Graphics();
       
-      // Spawn at corners or edges
       let sx, sy;
       const mode = Math.floor(Math.random() * 4);
-      if (mode === 0) { sx = 0; sy = 0; } // Top-left
-      else if (mode === 1) { sx = w; sy = 0; } // Top-right
-      else if (mode === 2) { sx = 0; sy = h; } // Bottom-left
-      else { sx = w; sy = h; } // Bottom-right
+      if (mode === 0) { sx = 0; sy = 0; }
+      else if (mode === 1) { sx = w; sy = 0; }
+      else if (mode === 2) { sx = 0; sy = h; }
+      else { sx = w; sy = h; }
       
-      // Shuttle shape (diamond-ish)
-      graphics.poly([0, -8, 4, 0, 0, 8, -4, 0]).fill({ color, alpha: 0.6 });
-      
+      graphics.poly([0, -8, 4, 0, 0, 8, -4, 0]).fill({ color, alpha: 0.5 });
       graphics.x = sx;
       graphics.y = sy;
-      
       this.container.addChild(graphics);
       
       const dx = centerX - sx;
       const dy = centerY - sy;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const speed = 3 + Math.random() * 3;
+      const moveSpeed = 4 + Math.random() * 3;
       
       this.visuals.push({
         graphics,
         life: 1.0,
         type: 'shedtle',
-        vx: (dx / dist) * speed,
-        vy: (dy / dist) * speed
+        vx: (dx / dist) * moveSpeed,
+        vy: (dy / dist) * moveSpeed
       });
     }
   }

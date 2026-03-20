@@ -107,10 +107,13 @@ export class SceneSnare extends BaseScene {
     const centerY = this.canvasRect.height / 2;
 
     // "Geometric Frames" (Thinner lines)
+    // Industrial frames with bloom effect
     if (this.currentVariation === 2) {
-       graphics.poly([0, -20, 20, 0, 0, 20, -20, 0]).stroke({ color, width: 1.5 });
+       graphics.poly([0, -20, 20, 0, 0, 20, -20, 0]).stroke({ color, width: 3.5 });
+       graphics.poly([0, -25, 25, 0, 0, 25, -25, 0]).stroke({ color, width: 1.5, alpha: 0.3 }); // Bloom
     } else {
-       graphics.rect(-15, -15, 30, 30).stroke({ color, width: 1.5 });
+       graphics.rect(-15, -15, 30, 30).stroke({ color, width: 3.5 });
+       graphics.rect(-18, -18, 36, 36).stroke({ color, width: 1.5, alpha: 0.3 }); // Bloom
     }
     
     graphics.position.set(centerX, centerY);

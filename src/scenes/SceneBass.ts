@@ -76,7 +76,7 @@ export class SceneBass extends BaseScene {
       bar.yOffset += deltaTime * 3.5; // Softer scroll
       bar.alpha -= deltaTime * 0.025;
 
-      if (bar.alpha <= 0 || bar.yOffset > centerY * 0.9) { // Early clamp
+      if (bar.alpha <= 0 || bar.yOffset > centerY * 1.05) { // Full screen coverage
         this.activeBars.splice(i, 1);
         continue;
       }
@@ -94,7 +94,7 @@ export class SceneBass extends BaseScene {
           centerX, y + (curve * side), 
           w, y
         );
-        this.graphics.stroke({ width: 1.5, color, alpha: intensity });
+        this.graphics.stroke({ width: 5.0, color, alpha: intensity });
       }
     }
   }
