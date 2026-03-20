@@ -2,28 +2,37 @@ import * as PIXI from 'pixi.js';
 import * as Tone from 'tone';
 import { BaseScene } from '../core/BaseScene';
 
+interface BassBar {
+  yOffset: number;
+  alpha: number;
+}
+
 export class SceneBass extends BaseScene {
   private synth!: Tone.MonoSynth;
   private dist!: Tone.Distortion;
   private filter!: Tone.Filter;
+  private chorus!: Tone.Chorus;
   private seq!: Tone.Sequence;
   private graphics!: PIXI.Graphics;
-  private activeBars: { y: number, alpha: number }[] = [];
+  
+  private activeBars: BassBar[] = [];
+  private currentVariation: number = 0;
+  private colors = [0xBD00FF, 0x00FF9F, 0x00D4FF, 0xFF0055]; // Flat Neon 2026
 
   constructor() {
     super('scene-bass', 'Techno Bass');
   }
 
   protected onInit(): void {
-    this.dist = this.registerNode(new Tone.Distortion(0.8).connect(this.audioChannel));
-    this.filter = this.registerNode(new Tone.Filter(100, 'lowpass').connect(this.dist));
+    this.dist = this.registerNode(new Tone.Distortion(0.3).connect(this.audioChannel));
+    this.chorus = this.registerNode(new Tone.Chorus(4, 2.5, 0.5).connect(this.dist).start());
+    this.filter = this.registerNode(new Tone.Filter(150, 'lowpass').connect(this.chorus));
     
     this.synth = this.registerNode(
       new Tone.MonoSynth({
         oscillator: { type: 'square' },
-        envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 0.4 },
-        filter: { Q: 1, type: 'lowpass', rolloff: -12 },
-        filterEnvelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 0.4, baseFrequency: 50, octaves: 1 }
+        envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 0.5 },
+        filterEnvelope: { attack: 0.02, decay: 0.1, sustain: 0.1, baseFrequency: 100, octaves: 2 }
       }).connect(this.filter)
     );
 
@@ -31,13 +40,13 @@ export class SceneBass extends BaseScene {
     this.container.addChild(this.graphics);
 
     // Syncopated 16th rumble pattern
-    const pattern = ["C1", 0, "C1", "C1", 0, "C1", "C1", 0];
+    const pattern = ["C1", null, "C1", "C1", null, "C1", "C1", null];
     this.seq = this.registerNode(
       new Tone.Sequence((time, note) => {
         if (note) {
           this.synth.triggerAttackRelease(note, "16n", time);
           Tone.Draw.schedule(() => {
-            this.activeBars.push({ y: 0, alpha: 1.0 });
+            this.activeBars.push({ yOffset: 0, alpha: 1.0 });
           }, time);
         }
       }, pattern, "16n")
@@ -57,53 +66,69 @@ export class SceneBass extends BaseScene {
   public update(deltaTime: number): void {
     const w = this.canvasRect.width;
     const h = this.canvasRect.height;
-    
-    // Variation 3 (Drone) has slower scroll
-    const scrollSpeed = (this.currentVariation === 3 ? 1 : 5) * deltaTime;
+    const centerX = w / 2;
+    const centerY = h / 2;
 
     this.graphics.clear();
     
     for (let i = this.activeBars.length - 1; i >= 0; i--) {
       const bar = this.activeBars[i];
-      bar.y += scrollSpeed;
-      bar.alpha -= 0.01 * deltaTime;
+      bar.yOffset += deltaTime * 3.5; // Softer scroll
+      bar.alpha -= deltaTime * 0.025;
 
-      if (bar.y > h || bar.alpha <= 0) {
+      if (bar.alpha <= 0 || bar.yOffset > centerY * 0.9) { // Early clamp
         this.activeBars.splice(i, 1);
         continue;
       }
 
       const color = this.colors[this.currentVariation % this.colors.length];
+      const intensity = bar.alpha * 0.5; // Softer alpha
       
-      if (this.currentVariation === 2) { // Pulse/Glitch style
-         this.graphics.rect(0, bar.y, w, 8).fill({ color, alpha: bar.alpha * 0.4 });
-      } else {
-         this.graphics.rect(0, bar.y, w, 2).fill({ color, alpha: bar.alpha * 0.6 });
-         this.graphics.rect(0, bar.y - 1, w, 4).fill({ color, alpha: bar.alpha * 0.3 });
+      for (const side of [-1, 1]) {
+        const y = centerY + (bar.yOffset * side);
+        const curve = (1 - bar.alpha) * 60; // Less bowing
+        
+        this.graphics.moveTo(0, y);
+        this.graphics.bezierCurveTo(
+          centerX, y + (curve * side), 
+          centerX, y + (curve * side), 
+          w, y
+        );
+        this.graphics.stroke({ width: 1.5, color, alpha: intensity });
       }
     }
   }
 
-  private currentVariation: number = 0;
-  private colors = [0x4444ff, 0x5cacee, 0x9370db, 0x4169e1];
-
   public setParameters(params: any): void {
-    if (params.drive !== undefined) {
-      this.synth.oscillator.type = params.drive > 0.5 ? 'sawtooth' : 'square';
-    }
     if (params.variation !== undefined) {
       this.currentVariation = params.variation;
       const v = this.currentVariation;
-      const types = ['square', 'sawtooth', 'triangle', 'sine'];
-      this.synth.oscillator.type = types[v % types.length] as any;
       
-      if (v === 3) { // Drone
-         // @ts-ignore
-         this.seq.events = ["C1"];
-      } else {
-         // @ts-ignore
-         this.seq.events = ["C1"];
+      switch (v) {
+        case 0: // Deep Sub
+          this.synth.set({ oscillator: { type: 'square' } });
+          this.filter.set({ frequency: 150, Q: 1, type: 'lowpass' });
+          this.chorus.set({ wet: 0, depth: 0 });
+          break;
+        case 1: // Sawtooth Pulse
+          this.synth.set({ oscillator: { type: 'sawtooth' } });
+          this.filter.set({ frequency: 300, Q: 1, type: 'lowpass' });
+          this.chorus.set({ wet: 0.2, depth: 0.5 });
+          break;
+        case 2: // Acid Rumble
+          this.synth.set({ oscillator: { type: 'sawtooth' } });
+          this.filter.set({ frequency: 200, Q: 8, type: 'lowpass' });
+          this.chorus.set({ wet: 0.1, depth: 0.2 });
+          break;
+        case 3: // Cavernous Width
+          this.synth.set({ oscillator: { type: 'triangle' } });
+          this.filter.set({ frequency: 100, Q: 1, type: 'lowpass' });
+          this.chorus.set({ wet: 0.8, depth: 0.9 });
+          break;
       }
+    }
+    if (params.drive !== undefined) {
+        this.dist.distortion = params.drive;
     }
   }
 }

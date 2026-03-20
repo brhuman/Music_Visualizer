@@ -5,7 +5,7 @@ import { BaseScene } from '../core/BaseScene';
 interface StabVisual {
   graphics: PIXI.Graphics;
   life: number;
-  maxLife: number;
+  rotationSpeed: number;
 }
 
 export class SceneStab extends BaseScene {
@@ -16,7 +16,7 @@ export class SceneStab extends BaseScene {
   private visuals: StabVisual[] = [];
 
   private currentVariation: number = 0;
-  private colors = [0xcccccc, 0x00ffff, 0xff00ff, 0x999999];
+  private colors = [0xBD00FF, 0x00D4FF, 0xFF0055, 0x00FF9F]; // Flat Neon 2026
 
   constructor() {
     super('scene-stab', 'Warehouse Stab');
@@ -29,7 +29,7 @@ export class SceneStab extends BaseScene {
     this.polySynth = this.registerNode(
       new Tone.PolySynth(Tone.Synth, {
         oscillator: { type: 'sawtooth' },
-        envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+        envelope: { attack: 0.005, decay: 0.2, sustain: 0, release: 0.2 }
       }).connect(this.filter)
     );
 
@@ -38,9 +38,11 @@ export class SceneStab extends BaseScene {
     this.seq = this.registerNode(
       new Tone.Sequence((time, note) => {
         if (note) {
-          // Trigger a minor chord
           const freq = Tone.Frequency(note).toFrequency();
-          this.polySynth.triggerAttackRelease([freq, freq * 1.2, freq * 1.5], "16n", time);
+          let notes = [freq, freq * 1.2, freq * 1.5];
+          if (this.currentVariation === 3) notes = [freq, freq * 1.2, freq * 1.5, freq * 1.88, freq * 2.25];
+          
+          this.polySynth.triggerAttackRelease(notes, "16n", time);
           
           Tone.Draw.schedule(() => {
             this.spawnVisual();
@@ -62,17 +64,18 @@ export class SceneStab extends BaseScene {
   }
 
   public update(deltaTime: number): void {
-    const dt = (1000 / 60) * deltaTime;
     for (let i = this.visuals.length - 1; i >= 0; i--) {
       const v = this.visuals[i];
-      v.life -= dt;
+      v.life -= deltaTime * 0.05;
       if (v.life <= 0) {
         v.graphics.destroy();
         this.visuals.splice(i, 1);
       } else {
-        const progress = v.life / v.maxLife;
-        v.graphics.scale.set(1 + (1 - progress) * 2);
-        v.graphics.alpha = progress;
+        // "Sigil Clamp": Reduced expansion spread
+        const scale = 1 + (1 - v.life) * 2;
+        v.graphics.scale.set(Math.min(scale, 2.5));
+        v.graphics.rotation += v.rotationSpeed * deltaTime;
+        v.graphics.alpha = v.life * 0.6;
       }
     }
   }
@@ -81,28 +84,58 @@ export class SceneStab extends BaseScene {
     if (params.variation !== undefined) {
       this.currentVariation = params.variation;
       const v = this.currentVariation;
-      const types = ['sawtooth', 'square', 'sine', 'triangle'];
-      this.polySynth.set({ oscillator: { type: types[v % types.length] } as any });
       
-      // Update filter cutoff based on variation
-      this.filter.frequency.value = 1000 + v * 500;
+      // Robust State Reset
+      switch (v) {
+        case 0: // Classic Minor
+          this.polySynth.set({ oscillator: { type: 'sawtooth' } });
+          this.filter.set({ frequency: 1500, Q: 2, type: 'bandpass' });
+          this.delay.set({ feedback: 0.4, delayTime: "8n" });
+          break;
+        case 1: // Detuned
+          this.polySynth.set({ oscillator: { type: 'square' } });
+          this.filter.set({ frequency: 1000, Q: 1, type: 'bandpass' });
+          this.delay.set({ feedback: 0.3, delayTime: "8n" });
+          break;
+        case 2: // Metallic Grit
+          this.polySynth.set({ oscillator: { type: 'fmsine' } as any });
+          this.filter.set({ frequency: 3000, Q: 10, type: 'highpass' });
+          this.delay.set({ feedback: 0.2, delayTime: "16n" });
+          break;
+        case 3: // Dub Chord
+          this.polySynth.set({ oscillator: { type: 'triangle' } });
+          this.filter.set({ frequency: 800, Q: 1.5, type: 'bandpass' });
+          this.delay.set({ feedback: 0.7, delayTime: "4n" });
+          break;
+      }
     }
   }
 
   private spawnVisual() {
+    if (!this.container) return;
     const graphics = new PIXI.Graphics();
     const color = this.colors[this.currentVariation % this.colors.length];
     
-    // Draw a "shattering" square visual
-    graphics.rect(-40, -40, 80, 80).stroke({ color, width: 2 });
-    graphics.rect(-30, -30, 60, 60).stroke({ color, width: 1, alpha: 0.5 });
+    const centerX = this.canvasRect.width / 2;
+    const centerY = this.canvasRect.height / 2;
+
+    const numLines = 6 + Math.floor(Math.random() * 6); // Slightly fewer lines
+    for (let i = 0; i < numLines; i++) {
+        const angle = (i / numLines) * Math.PI * 2;
+        const length = 30 + Math.random() * 30; // Shorter lines
+        graphics.moveTo(Math.cos(angle) * 15, Math.sin(angle) * 15);
+        graphics.lineTo(Math.cos(angle) * length, Math.sin(angle) * length);
+    }
+    graphics.stroke({ color, width: 1.5, alpha: 0.7 });
     
-    const x = Math.random() * this.canvasRect.width;
-    const y = Math.random() * this.canvasRect.height;
-    graphics.position.set(x, y);
+    graphics.position.set(centerX, centerY);
     graphics.rotation = Math.random() * Math.PI;
     
     this.container.addChild(graphics);
-    this.visuals.push({ graphics, life: 500, maxLife: 500 });
+    this.visuals.push({ 
+      graphics, 
+      life: 1.0, 
+      rotationSpeed: (Math.random() - 0.5) * 0.08 
+    });
   }
 }
