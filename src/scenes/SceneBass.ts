@@ -12,6 +12,7 @@ export class SceneBass extends BaseScene {
   private dist!: Tone.Distortion;
   private filter!: Tone.Filter;
   private chorus!: Tone.Chorus;
+  private volumeNode!: Tone.Gain;
   private seq!: Tone.Sequence;
   private graphics!: PIXI.Graphics;
   
@@ -24,7 +25,8 @@ export class SceneBass extends BaseScene {
   }
 
   protected onInit(): void {
-    this.dist = this.registerNode(new Tone.Distortion(0.3).connect(this.audioChannel));
+    this.volumeNode = this.registerNode(new Tone.Gain(1.0).connect(this.audioChannel));
+    this.dist = this.registerNode(new Tone.Distortion(0.3).connect(this.volumeNode));
     this.chorus = this.registerNode(new Tone.Chorus(4, 2.5, 0.5).connect(this.dist).start());
     this.filter = this.registerNode(new Tone.Filter(150, 'lowpass').connect(this.chorus));
     
@@ -74,7 +76,7 @@ export class SceneBass extends BaseScene {
     for (let i = this.activeBars.length - 1; i >= 0; i--) {
       const bar = this.activeBars[i];
       bar.yOffset += deltaTime * 3.5; // Softer scroll
-      bar.alpha -= deltaTime * 0.025;
+      bar.alpha -= deltaTime * 0.01;
 
       if (bar.alpha <= 0 || bar.yOffset > centerY * 1.05) { // Full screen coverage
         this.activeBars.splice(i, 1);
@@ -120,10 +122,14 @@ export class SceneBass extends BaseScene {
           this.filter.set({ frequency: 200, Q: 8, type: 'lowpass' });
           this.chorus.set({ wet: 0.1, depth: 0.2 });
           break;
-        case 3: // Cavernous Width
-          this.synth.set({ oscillator: { type: 'triangle' } });
-          this.filter.set({ frequency: 100, Q: 1, type: 'lowpass' });
-          this.chorus.set({ wet: 0.8, depth: 0.9 });
+        case 3: // Cavernous Width (NOW: Grit Sub)
+          this.synth.set({ oscillator: { type: 'fatsawtooth' } });
+          this.filter.set({ frequency: 250, Q: 1, type: 'lowpass' });
+          this.chorus.set({ wet: 0.4, depth: 0.5 });
+          this.volumeNode.gain.rampTo(1.6, 0.1); // Louder
+          break;
+        default:
+          this.volumeNode.gain.rampTo(1.0, 0.1);
           break;
       }
     }

@@ -2,16 +2,18 @@ import * as PIXI from 'pixi.js';
 import * as Tone from 'tone';
 import { BaseScene } from '../core/BaseScene';
 
-interface SnareVisual {
+interface SnareSpark {
   graphics: PIXI.Graphics;
   life: number;
+  vx: number;
+  vy: number;
 }
 
 export class SceneSnare extends BaseScene {
   private synth!: Tone.NoiseSynth;
   private filter!: Tone.Filter;
   private seq!: Tone.Sequence;
-  private visuals: SnareVisual[] = [];
+  private sparks: SnareSpark[] = [];
 
   private intensity: number = 1.0;
   private currentVariation: number = 0;
@@ -51,23 +53,28 @@ export class SceneSnare extends BaseScene {
 
   protected onStop(): void {
     this.seq.stop();
-    this.visuals.forEach(v => v.graphics.destroy());
-    this.visuals = [];
+    this.sparks.forEach(s => s.graphics.destroy());
+    this.sparks = [];
   }
 
   public update(deltaTime: number): void {
-    for (let i = this.visuals.length - 1; i >= 0; i--) {
-      const v = this.visuals[i];
-      v.life -= deltaTime * 0.06;
-      if (v.life <= 0) {
-        v.graphics.destroy();
-        this.visuals.splice(i, 1);
+    for (let i = this.sparks.length - 1; i >= 0; i--) {
+      const s = this.sparks[i];
+      s.life -= deltaTime * 0.02; // Much slower decay
+      
+      if (s.life <= 0) {
+        s.graphics.destroy();
+        this.sparks.splice(i, 1);
       } else {
-        const progress = 1 - v.life;
-        // "Sigil Clamp": Limit frame expansion
-        v.graphics.scale.set(1 + progress * 2.5);
-        v.graphics.rotation += deltaTime * 0.08;
-        v.graphics.alpha = v.life * 0.5; // Softer max alpha
+        s.graphics.x += s.vx * deltaTime;
+        s.graphics.y += s.vy * deltaTime;
+        s.vx *= 0.98; // Friction
+        s.vy *= 0.98;
+        
+        // Spin and fade
+        s.graphics.rotation += deltaTime * 0.1;
+        s.graphics.alpha = Math.pow(s.life, 1.2);
+        s.graphics.scale.set(s.life * 1.5);
       }
     }
   }
@@ -100,28 +107,38 @@ export class SceneSnare extends BaseScene {
 
   private spawnVisual() {
     if (!this.container) return;
-    const graphics = new PIXI.Graphics();
     const color = this.colors[this.currentVariation % this.colors.length];
     
-    const centerX = this.canvasRect.width / 2;
-    const centerY = this.canvasRect.height / 2;
+    const w = this.canvasRect.width;
+    const h = this.canvasRect.height;
 
-    // "Geometric Frames" (Thinner lines)
-    // Industrial frames with bloom effect
-    if (this.currentVariation === 2) {
-       graphics.poly([0, -20, 20, 0, 0, 20, -20, 0]).stroke({ color, width: 3.5 });
-       graphics.poly([0, -25, 25, 0, 0, 25, -25, 0]).stroke({ color, width: 1.5, alpha: 0.3 }); // Bloom
-    } else {
-       graphics.rect(-15, -15, 30, 30).stroke({ color, width: 3.5 });
-       graphics.rect(-18, -18, 36, 36).stroke({ color, width: 1.5, alpha: 0.3 }); // Bloom
-    }
-    
-    graphics.position.set(centerX, centerY);
-    
-    this.container.addChild(graphics);
-    this.visuals.push({
-      graphics,
-      life: 1.0
+    // 4 centers of 4 quadrants
+    const centers = [
+      { x: w * 0.25, y: h * 0.25 },
+      { x: w * 0.75, y: h * 0.25 },
+      { x: w * 0.25, y: h * 0.75 },
+      { x: w * 0.75, y: h * 0.75 }
+    ];
+
+    centers.forEach(center => {
+      const sparkCount = 4 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < sparkCount; i++) {
+        const graphics = new PIXI.Graphics();
+        graphics.poly([0, -3, 3, 0, 0, 3, -3, 0]).fill({ color, alpha: 0.8 });
+        graphics.x = center.x;
+        graphics.y = center.y;
+        this.container?.addChild(graphics);
+        
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 6;
+        
+        this.sparks.push({
+          graphics,
+          life: 1.0,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed
+        });
+      }
     });
   }
 }

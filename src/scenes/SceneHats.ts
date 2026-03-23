@@ -58,7 +58,7 @@ export class SceneHats extends BaseScene {
   public update(deltaTime: number): void {
     for (let i = this.visuals.length - 1; i >= 0; i--) {
       const v = this.visuals[i];
-      v.life -= deltaTime * 0.05;
+      v.life -= deltaTime * 0.015;
       if (v.life <= 0) {
         v.graphics.destroy();
         this.visuals.splice(i, 1);

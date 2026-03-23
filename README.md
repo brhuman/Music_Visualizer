@@ -1,21 +1,54 @@
-# Music Visualizer Project
+# 🎵 Techno Visualizer
 
-[Live Demo](https://music-visualizer-beta.vercel.app/)
+A high-performance, real-time audio-visual experience built with modern web technologies. This project serves as a focused practice in creative coding, complex animations, and advanced audio synthesis.
 
-## Overview
-This is a test project created for practicing **Pixi.js** animations, audio playback, and synchronization. It is a simple educational project focused on exploring creative coding and audio-visual interactions.
+[**Live Demo**](https://music-visualizer-beta.vercel.app/)
 
-While primarily a learning exercise, it serves as a foundation for a potential "pet project" for fun.
+---
 
-## Features
-- Real-time audio visualization.
-- Multiple animation scenes (Kick, Snare, Hats, Bass, etc.).
-- Audio-visual synchronization using Tone.js and Pixi.js.
-- Interactive UI for sound variation and parameter control.
+## 🚀 Key Learning Objectives
+This project was developed to master several powerful libraries for interactive web experiences:
 
-## Installation
+*   **[PIXI.js v8](https://pixijs.com/)**: Implementing high-performance 2D rendering and custom shader-like effects.
+*   **[Matter.js](https://brm.io/matter-js/)**: Exploration of 2D physics engines for dynamic, reactive animations.
+*   **[Tone.js](https://tonejs.github.io/)**: Building a robust audio engine with real-time synthesis, scheduling, and effect chains.
 
-To run this project locally, follow these steps:
+---
+
+## 🛠 Technical Stack
+
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![PixiJS](https://img.shields.io/badge/PixiJS-ff3e00?style=for-the-badge&logo=pixijs&logoColor=white)
+![Tone.js](https://img.shields.io/badge/Tone.js-000000?style=for-the-badge&logo=audio-engine&logoColor=white)
+
+- **Frontend**: React 19 + TypeScript
+- **Graphics**: PIXI.js 8 (WebGL/WebGPU)
+- **Physics**: Matter.js
+- **Audio Engine**: Tone.js (Synthesis & Effects)
+- **State Management**: Zustand
+- **Styling**: Modern CSS (Glassmorphism & Premium Aesthetics)
+
+---
+
+## ✨ Features
+
+- **Scene-Based Architecture**: Independent A/V scenes that can be combined and toggled.
+- **Dynamic Variations**: Each scene supports multiple sonic and visual presets.
+- **Responsive Animations**: Visuals react instantly to audio triggers with precision timing.
+- **Premium UI**: Sleek, transparent interface with deep-mode aesthetics.
+- **Fullscreen Support**: Immersive mode for a true visualizer experience.
+
+---
+
+## 📸 Visuals
+
+![Visualizer Preview](file:///Users/human/.gemini/antigravity/brain/045d473e-b22b-46ef-9f22-b869d6ef95cf/all_animations_check_1774089009021.png)
+
+---
+
+## 🛠 Installation
 
 1. **Clone the repository**:
    ```bash

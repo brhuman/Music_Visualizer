@@ -14,6 +14,7 @@ export class SceneKick extends BaseScene {
   private synth!: Tone.MembraneSynth;
   private player!: Tone.Player;
   private dist!: Tone.Distortion;
+  private volumeNode!: Tone.Gain;
   private seq!: Tone.Sequence;
   private visuals: KickVisual[] = [];
 
@@ -28,7 +29,8 @@ export class SceneKick extends BaseScene {
   }
 
   protected onInit(): void {
-    this.dist = this.registerNode(new Tone.Distortion(0.1).connect(this.audioChannel));
+    this.volumeNode = this.registerNode(new Tone.Gain(1.0).connect(this.audioChannel));
+    this.dist = this.registerNode(new Tone.Distortion(0.1).connect(this.volumeNode));
     this.synth = this.registerNode(
       new Tone.MembraneSynth({
         pitchDecay: 0.05,
@@ -56,7 +58,8 @@ export class SceneKick extends BaseScene {
             this.synth.set({
               envelope: { decay: 0.4 * this.decayMultiplier }
             });
-            this.synth.triggerAttackRelease(targetFreq, '8n', time, 1.0);
+            const velocity = this.currentVariation === 2 ? 1.6 : 1.0;
+            this.synth.triggerAttackRelease(targetFreq, '8n', time, velocity);
           }
           
           Tone.Draw.schedule(() => {
@@ -85,7 +88,11 @@ export class SceneKick extends BaseScene {
 
     for (let i = this.visuals.length - 1; i >= 0; i--) {
       const v = this.visuals[i];
-      v.life -= deltaTime * (v.type === 'stripe' ? 0.025 : 0.02);
+      const isBeta = this.currentVariation === 2;
+      
+      // All kick visuals now last longer
+      const decay = v.type === 'stripe' ? (isBeta ? 0.01 : 0.015) : 0.01;
+      v.life -= deltaTime * decay;
       
       if (v.life <= 0) {
         v.graphics.destroy();
@@ -99,8 +106,21 @@ export class SceneKick extends BaseScene {
         const distToCenter = Math.sqrt(dx * dx + dy * dy);
         
         if (v.type === 'stripe') {
-           // Move from edges to center and fade out
-           v.graphics.alpha = Math.min(v.life * 0.6, distToCenter / (maxDist * 0.4));
+          if (isBeta) {
+            // Beta: Thick -> Thin, Opaque -> Transparent, Reaches center
+            v.graphics.alpha = v.life * 0.7;
+            
+            // Thinning: start at 1.0 scale (thick) and go down
+            const scale = Math.max(0.05, v.life);
+            if (v.vx === 0) v.graphics.scale.y = scale;
+            else v.graphics.scale.x = scale;
+
+            // Kill if very close to center or life ends
+            if (distToCenter < 10) v.life = 0;
+          } else {
+            // Original: Move from edges to center and fade out
+            v.graphics.alpha = Math.min(v.life * 0.6, distToCenter / (maxDist * 0.4));
+          }
         } else {
            // Shedtle particles
            v.graphics.alpha = Math.min(v.life, distToCenter / (maxDist * 0.5));
@@ -148,18 +168,22 @@ export class SceneKick extends BaseScene {
     const w = this.canvasRect.width;
     const h = this.canvasRect.height;
     
+    // Variation 2 (Deep Synth 909) - "Beta"
+    const isBeta = this.currentVariation === 2;
+    const thickness = isBeta ? 60 : 15;
+    const speed = isBeta ? 6.5 : 4.5;
+
     // Spawn stripes from all 4 sides moving to center
-    const speed = 4.5;
     const stripes = [
-        { x: w / 2, y: -20, width: w, height: 15, vx: 0, vy: speed }, // Top
-        { x: w + 20, y: h / 2, width: 15, height: h, vx: -speed, vy: 0 }, // Right
-        { x: w / 2, y: h + 20, width: w, height: 15, vx: 0, vy: -speed }, // Bottom
-        { x: -20, y: h / 2, width: 15, height: h, vx: speed, vy: 0 }  // Left
+        { x: w / 2, y: -thickness, width: w, height: thickness, vx: 0, vy: speed }, // Top
+        { x: w + thickness, y: h / 2, width: thickness, height: h, vx: -speed, vy: 0 }, // Right
+        { x: w / 2, y: h + thickness, width: w, height: thickness, vx: 0, vy: -speed }, // Bottom
+        { x: -thickness, y: h / 2, width: thickness, height: h, vx: speed, vy: 0 }  // Left
     ];
 
     stripes.forEach(s => {
         const graphics = new PIXI.Graphics();
-        graphics.rect(-s.width / 2, -s.height / 2, s.width, s.height).fill({ color, alpha: 0.3 });
+        graphics.rect(-s.width / 2, -s.height / 2, s.width, s.height).fill({ color, alpha: isBeta ? 0.7 : 0.3 });
         graphics.x = s.x;
         graphics.y = s.y;
         this.container?.addChild(graphics);

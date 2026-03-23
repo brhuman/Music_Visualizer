@@ -66,16 +66,22 @@ export class SceneStab extends BaseScene {
   public update(deltaTime: number): void {
     for (let i = this.visuals.length - 1; i >= 0; i--) {
       const v = this.visuals[i];
-      v.life -= deltaTime * 0.05;
+      // Significantly slower decay for "wave" effect
+      v.life -= deltaTime * 0.015; 
+      
       if (v.life <= 0) {
         v.graphics.destroy();
         this.visuals.splice(i, 1);
       } else {
-        // "Sigil Clamp": Reduced expansion spread
-        const scale = 1 + (1 - v.life) * 2;
-        v.graphics.scale.set(Math.min(scale, 2.5));
-        v.graphics.rotation += v.rotationSpeed * deltaTime;
-        v.graphics.alpha = v.life * 0.6;
+        const progress = 1 - v.life;
+        const scale = 1 + progress * 4.0; // Larger expansion
+        v.graphics.scale.set(scale);
+        
+        // Dynamic rotation that accelerates slightly
+        v.graphics.rotation += v.rotationSpeed * deltaTime * (1 + progress);
+        
+        // Smoother exponential fade
+        v.graphics.alpha = Math.pow(v.life, 1.5) * 0.7;
       }
     }
   }
@@ -119,14 +125,25 @@ export class SceneStab extends BaseScene {
     const centerX = this.canvasRect.width / 2;
     const centerY = this.canvasRect.height / 2;
 
-    const numLines = 12 + Math.floor(Math.random() * 8); // Significantly more lines
+    const numLines = 16 + Math.floor(Math.random() * 8);
     for (let i = 0; i < numLines; i++) {
         const angle = (i / numLines) * Math.PI * 2;
-        const length = 50 + Math.random() * 50; // Longer lines
-        graphics.moveTo(Math.cos(angle) * 10, Math.sin(angle) * 10);
-        graphics.lineTo(Math.cos(angle) * length, Math.sin(angle) * length);
+        const length = 60 + Math.random() * 40;
+        
+        // Create twisting lines using bezier curves
+        const cp1Angle = angle + 0.5; // Controls the "twist"
+        const cp1Dist = length * 0.4;
+        const cp2Angle = angle - 0.2;
+        const cp2Dist = length * 0.7;
+        
+        graphics.moveTo(0, 0);
+        graphics.bezierCurveTo(
+            Math.cos(cp1Angle) * cp1Dist, Math.sin(cp1Angle) * cp1Dist,
+            Math.cos(cp2Angle) * cp2Dist, Math.sin(cp2Angle) * cp2Dist,
+            Math.cos(angle) * length, Math.sin(angle) * length
+        );
     }
-    graphics.stroke({ color, width: 2.5, alpha: 0.9 });
+    graphics.stroke({ color, width: 2.0, alpha: 0.8 });
     
     graphics.position.set(centerX, centerY);
     graphics.rotation = Math.random() * Math.PI;
