@@ -1,6 +1,6 @@
 # 🎵 Techno Visualizer
 
-A high-performance, real-time audio-visual experience built with modern web technologies. This project serves as a focused practice in creative coding, complex animations, and advanced audio synthesis.
+A real-time audio-visual experience built with modern web technologies. This project serves as a focused practice in creative coding, complex animations, and advanced audio synthesis.
 
 [**Live Demo**](https://music-visualizer-beta.vercel.app/)
 
@@ -29,41 +29,3 @@ This project was developed to master several powerful libraries for interactive 
 - **Audio Engine**: Tone.js (Synthesis & Effects)
 - **State Management**: Zustand
 - **Styling**: Modern CSS (Glassmorphism & Premium Aesthetics)
-
----
-
-## ✨ Features
-
-- **Scene-Based Architecture**: Independent A/V scenes that can be combined and toggled.
-- **Dynamic Variations**: Each scene supports multiple sonic and visual presets.
-- **Responsive Animations**: Visuals react instantly to audio triggers with precision timing.
-- **Premium UI**: Sleek, transparent interface with deep-mode aesthetics.
-- **Fullscreen Support**: Immersive mode for a true visualizer experience.
-
----
-
-## 📸 Visuals
-
-![Visualizer Preview](file:///Users/human/.gemini/antigravity/brain/045d473e-b22b-46ef-9f22-b869d6ef95cf/all_animations_check_1774089009021.png)
-
----
-
-## 🛠 Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd Music_Visualizer
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Run the development server**:
-   ```bash
-   npm run dev
-   ```
-
-The application will be available at `http://localhost:5173`.
