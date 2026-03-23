@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 import './index.css';
 import { animationManager } from './core/AnimationManager';
+import HelperModal from './components/HelperModal';
 
 const UI_CONFIG = [
   {
@@ -34,6 +35,7 @@ function App() {
   const [volume, setVolume] = useState(-10);
   const [bpm, setBpm] = useState(130);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showHelper, setShowHelper] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Store params state per scene
@@ -47,6 +49,13 @@ function App() {
     }));
     return initial;
   });
+
+  useEffect(() => {
+    const hideHelper = localStorage.getItem('hideHelperModal');
+    if (!hideHelper) {
+      setShowHelper(true);
+    }
+  }, []);
 
   const handleStartAudio = async () => {
     if (audioStarted) return;
@@ -189,9 +198,16 @@ function App() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [audioStarted, selectedSceneId, changeVariation, toggleScene]);
 
+  const handleCloseHelper = (dontShowAgain: boolean) => {
+    if (dontShowAgain) {
+      localStorage.setItem('hideHelperModal', 'true');
+    }
+    setShowHelper(false);
+  };
 
   return (
     <div className="app-container">
+      {showHelper && <HelperModal onClose={handleCloseHelper} />}
       <aside className="sidebar" style={{ overflowY: 'auto' }}>
         <h1 style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Techno Visualizer</h1>
         <div className="controls">
@@ -341,7 +357,33 @@ function App() {
           )}
         </div>
         
-        <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #334155' }}>
+        <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #334155', display: 'flex', gap: '0.5rem' }}>
+          <button 
+            className="fullscreen-button"
+            onClick={() => setShowHelper(true)}
+            title="Help & Hotkeys"
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: 'white',
+              borderRadius: '8px',
+              padding: '0.6rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease',
+              width: '40px',
+              height: '40px'
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </button>
+
           <button 
             className="fullscreen-button"
             onClick={toggleFullscreen}
